@@ -4,17 +4,17 @@
 
 Servo front_servo; // define servo for front
 
-AF_DCMotor left_back_Motor(1); // left back dc motor
-AF_DCMotor right_back_Motor(2); // left back dc motor
+AF_DCMotor left_back_Motor(3); // left back dc motor
+AF_DCMotor right_back_Motor(4); // right back dc motor
 
-Ultrasonic ultrasonic_back(40, 41), ultrasonic_left_back(38, 39), ultrasonic_left_front(36, 37), ultrasonic_front(34, 35);
+Ultrasonic ultrasonic_back(A8, A9), ultrasonic_right_back(A10, A11), ultrasonic_right_front(A12, A13), ultrasonic_front(A14, A15);
 // define ultrasonic sensors
 #define left 0             //left direction command
 #define right 1            //right direction command
 #define forward 2          //forward direction command
 #define backward 3         //backward command
-#define minimum_limit 15   //Width of the car (cm)
-#define minimum_limit1 28  //the length of the car (cm)
+#define car_width 15   //Width of the car (cm)
+#define car_length 28  //the length of the car (cm)
 
 byte park_status = 0;      //park status
 int signal_pin = 21;       //signal pin speed
@@ -54,7 +54,7 @@ void motor_pinSetup() {
   left_back_Motor.run(RELEASE);
   right_back_Motor.run(RELEASE);
 }
-// Movement functions
+// Movement functions for directions
 void Robot_Movement(byte motor, byte spd) {
   if (motor == forward) {
  
@@ -83,6 +83,7 @@ void Robot_Movement(byte motor, byte spd) {
 
   }
 }
+// motor stop funcition dc:stop servo:90
 void Robot_Stop() {
 
   left_back_Motor.run(RELEASE);
@@ -91,28 +92,29 @@ void Robot_Stop() {
 }
 // Search for parking
 bool Parking_Place_Control() {
+  // read distances
   long front_Sensor = ultrasonic_front.distanceRead(CM);
-  long right_Sensor = ultrasonic_left_front.distanceRead(CM);
-  long right_back_Sensor = ultrasonic_left_back.distanceRead(CM);
+  long right_Sensor = ultrasonic_right_front.distanceRead(CM);
+  long right_back_Sensor = ultrasonic_right_back.distanceRead(CM);
   
-  if ((right_Sensor <= minimum_limit) && (right_back_Sensor <= minimum_limit) && (park_status == 0)) {
+  if ((right_Sensor <= car_width) && (right_back_Sensor <= car_width) && (park_status == 0)) {
     Robot_Movement(forward, 100);
     park_status = 1;
     Serial.println(park_status);
   }
-  if ((right_Sensor > minimum_limit) && (right_Sensor < minimum_limit1) && (right_back_Sensor > minimum_limit) && (right_back_Sensor < minimum_limit1) && (park_status == 1)) {
+  if ((right_Sensor > car_width) && (right_Sensor < car_length) && (right_back_Sensor > car_width) && (right_back_Sensor < car_length) && (park_status == 1)) {
     Robot_Movement(forward, 100);
     park_status = 2;
     Serial.println(park_status);
   }
-  if ((right_Sensor >= minimum_limit1) && (right_back_Sensor >= minimum_limit1) && (park_status == 1)) {
+  if ((right_Sensor >= car_length) && (right_back_Sensor >= car_length) && (park_status == 1)) {
     /* Vertical Parking Decision */
     Robot_Stop();
     delay(500);
     park_status = 10;
     Serial.println(park_status);
   }
-  if ((right_Sensor <= minimum_limit) && (right_back_Sensor <= minimum_limit) && (park_status == 2)) {
+  if ((right_Sensor <= car_width) && (right_back_Sensor <= car_width) && (park_status == 2)) {
     /* Parallel Parking Decision */
     park_status = 3;
     Serial.println(park_status);
@@ -153,9 +155,9 @@ void Park_bul() {
   }
   if (park_status == 6) {
     Robot_Movement(left, 150);
-    long right_Sensor = ultrasonic_left_front.distanceRead(CM);
+    long right_Sensor = ultrasonic_right_front.distanceRead(CM);
     Serial.println(right_Sensor);
-    long right_back_Sensor = ultrasonic_left_back.distanceRead(CM);
+    long right_back_Sensor = ultrasonic_right_back.distanceRead(CM);
     Serial.println(right_back_Sensor);
     if (right_Sensor == right_back_Sensor) {
       Robot_Stop();
